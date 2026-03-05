@@ -1,0 +1,2835 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="description" content="نظام إدارة نقطة إعادة الطلب مع الاستهلاك الشهري - يعمل بدون إنترنت">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="حد الطلب">
+    <title>نظام حد الطلب - مع الاستهلاك الشهري</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        /* نظام الألوان المتطور - كما كان في التصميم الأصلي */
+        :root {
+            --bg-deep: #0a0a0f;
+            --bg-base: #12121a;
+            --bg-card: #1a1a24;
+            --bg-elevated: #22222f;
+            --accent-primary: #7c3aed;
+            --accent-secondary: #f97316;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-info: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-subtle: rgba(255,255,255,0.08);
+            --border-glow: rgba(124,58,237,0.3);
+            --shadow-card: 0 20px 40px -10px rgba(0,0,0,0.5);
+            --shadow-glow: 0 0 30px rgba(124,58,237,0.2);
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-xl: 36px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* إعادة تعيين متقدم */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* خلفية متحركة */
+        .animated-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .animated-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(124,58,237,0.1) 0%, transparent 50%);
+            animation: pulse 10s ease-in-out infinite;
+        }
+
+        .animated-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 80%, rgba(249,115,22,0.1) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite reverse;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* شريط التنقل المحسن */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,15,0.8);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 24px;
+        }
+
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 8px 20px rgba(124,58,237,0.3);
+            transition: var(--transition);
+        }
+
+        .nav-logo:hover {
+            transform: scale(1.05) rotate(5deg);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-title span {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .net-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 20px;
+            background: var(--bg-card);
+            border-radius: 40px;
+            border: 1px solid var(--border-subtle);
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .net-status:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .net-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            box-shadow: 0 0 12px var(--accent-success);
+            transition: var(--transition);
+        }
+
+        .net-dot.offline {
+            background: var(--accent-danger);
+            box-shadow: 0 0 12px var(--accent-danger);
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* الحاوية الرئيسية */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* بطاقات الإحصائيات المتطورة */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 992px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent-color), transparent);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: var(--accent-color);
+            box-shadow: 0 20px 40px -15px var(--accent-color);
+        }
+
+        .stat-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-color);
+            transform: scaleX(0);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover::after {
+            transform: scaleX(1);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-value {
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 12px;
+        }
+
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-subtle);
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-icon {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            font-size: 48px;
+            opacity: 0.1;
+            transform: rotate(-5deg);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover .stat-icon {
+            opacity: 0.2;
+            transform: rotate(0deg) scale(1.1);
+        }
+
+        /* شريط الأدوات المحسن */
+        .toolbar {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 16px 24px;
+            margin-bottom: 28px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* شريط التحديد الجماعي */
+        .bulk-bar {
+            background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(249,115,22,0.1));
+            border: 1px solid var(--accent-primary);
+            border-radius: var(--radius-md);
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bulk-bar.active {
+            display: flex;
+        }
+
+        .bulk-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .bulk-count {
+            background: var(--accent-primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* الأزرار المحسنة */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.3px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .btn:hover::before {
+            opacity: 1;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #8b5cf6);
+            color: white;
+            box-shadow: 0 8px 20px rgba(124,58,237,0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(124,58,237,0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--accent-secondary), #fb923c);
+            color: white;
+            box-shadow: 0 8px 20px rgba(249,115,22,0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(249,115,22,0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-success), #34d399);
+            color: white;
+            box-shadow: 0 8px 20px rgba(16,185,129,0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(16,185,129,0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-danger), #f87171);
+            color: white;
+            box-shadow: 0 8px 20px rgba(239,68,68,0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(239,68,68,0.4);
+        }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            padding: 12px;
+            border-radius: 50%;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .btn-lg {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+
+        /* مربع البحث المحسن */
+        .search-wrapper {
+            position: relative;
+            min-width: 280px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: 40px;
+            padding: 14px 20px 14px 48px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 15px;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-primary);
+            background: rgba(124,58,237,0.05);
+            box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .search-input:focus + .search-icon {
+            color: var(--accent-primary);
+        }
+
+        /* مبدل العرض المحسن */
+        .view-toggle {
+            display: flex;
+            background: rgba(255,255,255,0.03);
+            border-radius: 40px;
+            padding: 4px;
+            gap: 4px;
+            border: 1px solid var(--border-subtle);
+            backdrop-filter: blur(10px);
+        }
+
+        .view-btn {
+            padding: 10px 18px;
+            border-radius: 30px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .view-btn i {
+            font-size: 16px;
+        }
+
+        .view-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(124,58,237,0.3);
+        }
+
+        .view-btn:not(.active):hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        /* بطاقة الجدول المحسنة */
+        .table-card {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .table-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+        }
+
+        .table-title i {
+            color: var(--accent-primary);
+            font-size: 20px;
+        }
+
+        .table-count {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 4px 16px;
+            border-radius: 40px;
+            border: 1px solid var(--border-subtle);
+            font-weight: 500;
+        }
+
+        /* الجدول المحسن */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead tr th {
+            text-align: right;
+            padding: 16px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .data-table tbody tr {
+            transition: var(--transition);
+            animation: slideIn 0.4s ease backwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(124,58,237,0.05);
+        }
+
+        .data-table tbody tr.selected {
+            background: rgba(124,58,237,0.1);
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .data-table td {
+            padding: 18px 20px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            vertical-align: middle;
+        }
+
+        /* مربعات الاختيار */
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+
+        .checkbox-input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+            transform: scale(1);
+            transition: var(--transition);
+        }
+
+        .checkbox-input:hover {
+            transform: scale(1.1);
+        }
+
+        .select-all {
+            margin-right: 10px;
+        }
+
+        .item-code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-primary);
+            background: rgba(124,58,237,0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            border: 1px solid rgba(124,58,237,0.2);
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stock-value {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .stock-value.danger {
+            color: var(--accent-danger);
+        }
+
+        .stock-value.warning {
+            color: var(--accent-warning);
+        }
+
+        .stock-value.safe {
+            color: var(--accent-success);
+        }
+
+        .consumption-badge {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-secondary);
+            background: rgba(249,115,22,0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            border: 1px solid rgba(249,115,22,0.2);
+        }
+
+        .lead-badge {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--accent-info);
+            background: rgba(59,130,246,0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            border: 1px solid rgba(59,130,246,0.2);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+
+        .pill-danger {
+            background: rgba(239,68,68,0.1);
+            color: var(--accent-danger);
+            border-color: rgba(239,68,68,0.2);
+        }
+
+        .pill-danger::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-danger);
+            box-shadow: 0 0 8px var(--accent-danger);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .pill-safe {
+            background: rgba(16,185,129,0.1);
+            color: var(--accent-success);
+            border-color: rgba(16,185,129,0.2);
+        }
+
+        .pill-safe::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            box-shadow: 0 0 8px var(--accent-success);
+        }
+
+        .recommended-qty {
+            font-weight: 800;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .recommended-qty.urgent {
+            background: rgba(239,68,68,0.15);
+            color: var(--accent-danger);
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+
+        .recommended-qty.none {
+            color: var(--text-muted);
+        }
+
+        .stock-bar {
+            margin-top: 8px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .stock-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* أزرار الإجراءات المحسنة */
+        .row-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .data-table tbody tr:hover .row-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .action-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 8px 16px rgba(124,58,237,0.3);
+        }
+
+        .action-btn.del:hover {
+            background: var(--accent-danger);
+            border-color: var(--accent-danger);
+            box-shadow: 0 8px 16px rgba(239,68,68,0.3);
+        }
+
+        /* عرض الشبكة المحسن */
+        .grid-view {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            padding: 24px;
+        }
+
+        .grid-view.active {
+            display: grid;
+        }
+
+        .grid-item {
+            background: linear-gradient(135deg, var(--bg-elevated), var(--bg-card));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            transition: var(--transition);
+            animation: slideIn 0.4s ease backwards;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .grid-item.selected {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px var(--accent-primary);
+            background: rgba(124,58,237,0.05);
+        }
+
+        .grid-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .grid-item.danger-item::before {
+            background: linear-gradient(90deg, var(--accent-danger), var(--accent-warning));
+            opacity: 1;
+        }
+
+        .grid-item:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 20px 40px -15px var(--accent-primary);
+        }
+
+        .grid-item:hover::before {
+            opacity: 1;
+        }
+
+        .grid-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .grid-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .grid-code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-primary);
+            background: rgba(124,58,237,0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .grid-stat-box {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition);
+        }
+
+        .grid-stat-box:hover {
+            background: rgba(124,58,237,0.05);
+            border-color: var(--accent-primary);
+        }
+
+        .grid-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .grid-stat-val {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .recommend-box {
+            background: rgba(239,68,68,0.05);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 16px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recommend-box .qty {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent-danger);
+        }
+
+        .grid-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .grid-action-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .grid-action-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(124,58,237,0.3);
+        }
+
+        .grid-action-btn.del {
+            flex: 0 0 auto;
+            width: 44px;
+        }
+
+        .grid-action-btn.del:hover {
+            background: var(--accent-danger);
+            border-color: var(--accent-danger);
+            box-shadow: 0 8px 16px rgba(239,68,68,0.3);
+        }
+
+        /* حالة عدم وجود بيانات */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-icon {
+            font-size: 80px;
+            opacity: 0.2;
+            margin-bottom: 24px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .empty-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .empty-sub {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+
+        /* النوافذ المنبثقة المحسنة */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9) translateY(20px);
+            transition: var(--transition);
+            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.5);
+        }
+
+        .modal-overlay.open .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-lg {
+            max-width: 800px;
+        }
+
+        .modal-header {
+            padding: 28px 28px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 16px;
+        }
+
+        .modal-close:hover {
+            background: var(--accent-danger);
+            color: white;
+            border-color: var(--accent-danger);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 28px;
+        }
+
+        .modal-footer {
+            padding: 0 28px 28px;
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+        }
+
+        /* نموذج محسن */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 15px;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-primary);
+            background: rgba(124,58,237,0.05);
+            box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* منطقة تحميل الملفات المحسنة */
+        .drop-zone {
+            border: 2px dashed var(--border-subtle);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(124,58,237,0.05);
+            transform: scale(1.02);
+        }
+
+        .drop-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+            transition: var(--transition);
+        }
+
+        .drop-zone:hover .drop-icon {
+            opacity: 1;
+            transform: translateY(-5px);
+        }
+
+        .drop-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .drop-sub {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* إشعارات Toast محسنة */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 12px;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+            pointer-events: all;
+            animation: toastSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes toastSlide {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.1));
+            color: var(--accent-success);
+            border-color: rgba(16,185,129,0.3);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1));
+            color: var(--accent-danger);
+            border-color: rgba(239,68,68,0.3);
+        }
+
+        .toast.warning {
+            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1));
+            color: var(--accent-warning);
+            border-color: rgba(245,158,11,0.3);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.1));
+            color: var(--accent-info);
+            border-color: rgba(59,130,246,0.3);
+        }
+
+        .toast-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            font-size: 16px;
+        }
+
+        /* عناصر التنبيهات */
+        .alert-item {
+            background: linear-gradient(135deg, var(--bg-elevated), var(--bg-card));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: var(--transition);
+            animation: slideIn 0.4s ease backwards;
+        }
+
+        .alert-item:hover {
+            border-color: var(--accent-danger);
+            transform: translateX(-4px);
+        }
+
+        .alert-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .alert-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .alert-code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-primary);
+            margin-top: 4px;
+        }
+
+        .urgent-badge {
+            background: rgba(239,68,68,0.15);
+            color: var(--accent-danger);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+
+        .alert-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .alert-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .alert-stat-box {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .alert-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .alert-stat-val {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .alert-stat-val.red {
+            color: var(--accent-danger);
+        }
+
+        .alert-stat-val.orange {
+            color: var(--accent-secondary);
+        }
+
+        .alert-stat-val.purple {
+            color: var(--accent-primary);
+        }
+
+        .alert-lead {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* تخصيص شريط التمرير */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 4px;
+            opacity: 0.5;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            opacity: 1;
+        }
+
+        /* تأثيرات إضافية */
+        .glass-effect {
+            background: rgba(255,255,255,0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .row-danger {
+            background: rgba(239,68,68,0.05) !important;
+        }
+
+        .row-danger:hover {
+            background: rgba(239,68,68,0.1) !important;
+        }
+
+        /* تأثيرات للأزرار والعناصر التفاعلية */
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition);
+        }
+
+        .sortable:hover {
+            color: var(--accent-primary);
+        }
+
+        .sort-icon {
+            margin-right: 8px;
+            font-size: 10px;
+            opacity: 0.5;
+        }
+
+        .sortable.active .sort-icon {
+            opacity: 1;
+            color: var(--accent-primary);
+        }
+
+        /* إخفاء/إظهار العناصر */
+        .hidden {
+            display: none !important;
+        }
+
+        /* تثبيت التطبيق */
+        .install-prompt {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+            z-index: 1500;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transform: translateY(200%);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .install-prompt.show {
+            transform: translateY(0);
+        }
+
+        .install-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .install-text {
+            flex: 1;
+        }
+
+        .install-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .install-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .install-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .install-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .install-btn.primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .install-btn.secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .install-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- خلفية متحركة -->
+    <div class="animated-bg"></div>
+
+    <!-- شريط التنقل المحسن -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <div class="nav-logo">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="nav-title">
+                    نظام <span>حد الطلب</span>
+                </div>
+            </div>
+            <div class="net-status" id="netStatus">
+                <div class="net-dot" id="netDot"></div>
+                <span id="netText">متصل</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-container">
+        <!-- بطاقات الإحصائيات المحسنة -->
+        <div class="stats-grid">
+            <div class="stat-card" style="--accent-color: #7c3aed">
+                <div class="stat-label">إجمالي الأصناف</div>
+                <div class="stat-value" id="totalItems">0</div>
+                <div class="stat-badge">
+                    <i class="fas fa-box"></i>
+                    صنف مسجل
+                </div>
+                <i class="fas fa-cubes stat-icon"></i>
+            </div>
+            
+            <div class="stat-card" style="--accent-color: #ef4444" onclick="showAlertView()">
+                <div class="stat-label">تنبيهات الطلب</div>
+                <div class="stat-value" id="alertCount">0</div>
+                <div class="stat-badge" id="alertBadge">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    بحاجة للطلب
+                </div>
+                <i class="fas fa-bell stat-icon"></i>
+            </div>
+            
+            <div class="stat-card" style="--accent-color: #10b981">
+                <div class="stat-label">إجمالي المخزون</div>
+                <div class="stat-value" id="totalStock">0</div>
+                <div class="stat-badge">
+                    <i class="fas fa-chart-line"></i>
+                    وحدة مخزنة
+                </div>
+                <i class="fas fa-warehouse stat-icon"></i>
+            </div>
+
+            <div class="stat-card" style="--accent-color: #f59e0b">
+                <div class="stat-label">متوسط الاستهلاك</div>
+                <div class="stat-value" id="avgConsumption">0</div>
+                <div class="stat-badge">
+                    <i class="fas fa-fire"></i>
+                    شهرياً
+                </div>
+                <i class="fas fa-chart-bar stat-icon"></i>
+            </div>
+        </div>
+
+        <!-- شريط الأدوات المحسن -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <button class="btn btn-primary" onclick="showAddModal()">
+                    <i class="fas fa-plus"></i>
+                    صنف جديد
+                </button>
+                <button class="btn btn-secondary" onclick="showImportModal()">
+                    <i class="fas fa-file-import"></i>
+                    استيراد
+                </button>
+                <button class="btn btn-success" onclick="exportData()">
+                    <i class="fas fa-file-export"></i>
+                    تصدير
+                </button>
+                <button class="btn btn-ghost btn-icon" onclick="refreshData()" title="تحديث">
+                    <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-group">
+                <div class="search-wrapper">
+                    <input type="text" id="searchInput" class="search-input" placeholder="بحث بالاسم أو الكود..." oninput="searchMaterials()">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                
+                <div class="view-toggle">
+                    <button class="view-btn active" id="listViewBtn" onclick="setView('list')" title="عرض القائمة">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <button class="view-btn" id="gridViewBtn" onclick="setView('grid')" title="عرض البطاقات">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- شريط التحديد الجماعي -->
+        <div class="bulk-bar" id="bulkBar">
+            <div class="bulk-info">
+                <span class="bulk-count" id="selectedCount">0</span>
+                <span>عنصر محدد</span>
+            </div>
+            <div class="bulk-actions">
+                <button class="btn btn-sm btn-ghost" onclick="selectAll()">
+                    <i class="fas fa-check-double"></i>
+                    تحديد الكل
+                </button>
+                <button class="btn btn-sm btn-ghost" onclick="deselectAll()">
+                    <i class="fas fa-times"></i>
+                    إلغاء التحديد
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="confirmBulkDelete()">
+                    <i class="fas fa-trash-alt"></i>
+                    حذف المحدد
+                </button>
+            </div>
+        </div>
+
+        <!-- بطاقة الجدول المحسنة -->
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">
+                    <i class="fas fa-database"></i>
+                    قائمة الأصناف
+                    <span class="table-count" id="tableCount">0 صنف</span>
+                </div>
+            </div>
+
+            <!-- عرض القائمة -->
+            <div class="list-view" id="listView">
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>الكود</th>
+                                <th>اسم الصنف</th>
+                                <th style="text-align:center">الرصيد</th>
+                                <th style="text-align:center">حد الطلب</th>
+                                <th style="text-align:center">الاستهلاك الشهري</th>
+                                <th style="text-align:center">مدة التوريد</th>
+                                <th style="text-align:center">الحالة</th>
+                                <th style="text-align:center">الكمية المقترحة</th>
+                                <th style="text-align:center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materialsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- عرض الشبكة -->
+            <div class="grid-view" id="gridView"></div>
+
+            <!-- حالة عدم وجود بيانات -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <div class="empty-title">لا توجد أصناف</div>
+                <div class="empty-sub">ابدأ بإضافة الأصناف أو استيرادها من ملف Excel</div>
+                <div style="display: flex; gap: 16px; justify-content: center;">
+                    <button class="btn btn-primary" onclick="showAddModal()">
+                        <i class="fas fa-plus"></i>
+                        إضافة صنف
+                    </button>
+                    <button class="btn btn-secondary" onclick="showImportModal()">
+                        <i class="fas fa-file-import"></i>
+                        استيراد
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- نافذة إضافة/تعديل صنف -->
+    <div class="modal-overlay" id="materialModal" onclick="handleOverlayClick(event, 'materialModal')">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">إضافة صنف جديد</div>
+                <button class="modal-close" onclick="closeModal('materialModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="materialForm" onsubmit="saveMaterial(event)">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">كود الصنف *</label>
+                            <input type="text" id="itemCode" class="form-input" placeholder="مثال: MAT-001" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">اسم الصنف *</label>
+                            <input type="text" id="itemName" class="form-input" placeholder="أدخل اسم الصنف" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">الرصيد الحالي *</label>
+                            <input type="number" id="currentStock" class="form-input" placeholder="0" min="0" step="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">حد الطلب *</label>
+                            <input type="number" id="reorderPoint" class="form-input" placeholder="0" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">الاستهلاك الشهري *</label>
+                            <input type="number" id="monthlyConsumption" class="form-input" placeholder="0" min="0" step="0.01" required>
+                            <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">متوسط الاستهلاك الشهري للمادة</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">مدة التوريد (أيام) *</label>
+                            <input type="number" id="leadTime" class="form-input" placeholder="أدخل عدد الأيام" min="0" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('materialModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة استيراد البيانات -->
+    <div class="modal-overlay" id="importModal" onclick="handleOverlayClick(event, 'importModal')">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">استيراد البيانات</div>
+                <button class="modal-close" onclick="closeModal('importModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" 
+                     ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                    <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls,.csv" onchange="handleFileImport(event)">
+                    <div class="drop-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="drop-title">اسحب الملف هنا أو انقر للاختيار</div>
+                    <div class="drop-sub">يدعم ملفات Excel و CSV</div>
+                </div>
+                
+                <div style="margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px solid var(--border-subtle);">
+                    <h5 style="color: var(--text-muted); margin-bottom: 12px; font-size: 13px;">تنسيق الأعمدة المطلوب:</h5>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span class="item-code">1. كود الصنف</span>
+                        <span class="item-code">2. اسم الصنف</span>
+                        <span class="item-code">3. الرصيد</span>
+                        <span class="item-code">4. حد الطلب</span>
+                        <span class="item-code" style="color: var(--accent-secondary); border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.1);">5. الاستهلاك الشهري</span>
+                        <span class="item-code">6. مدة التوريد</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('importModal')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التنبيهات -->
+    <div class="modal-overlay" id="alertModal" onclick="handleOverlayClick(event, 'alertModal')">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <div class="modal-title" style="color: var(--accent-danger);">
+                    <i class="fas fa-exclamation-triangle" style="margin-left: 8px;"></i>
+                    أصناف بحاجة للطلب
+                </div>
+                <button class="modal-close" onclick="closeModal('alertModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="alertContent"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="exportAlerts()">
+                    <i class="fas fa-file-export"></i>
+                    تصدير القائمة
+                </button>
+                <button class="btn btn-ghost" onclick="closeModal('alertModal')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تأكيد الحذف -->
+    <div class="modal-overlay" id="confirmModal" onclick="handleOverlayClick(event, 'confirmModal')">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-body" style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 16px; color: var(--accent-danger);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">تأكيد الحذف</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;" id="confirmMsg">هل أنت متأكد من حذف هذا الصنف؟</p>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-ghost" style="flex: 1;" onclick="closeModal('confirmModal')">إلغاء</button>
+                    <button class="btn btn-danger" style="flex: 1;" id="confirmBtn">
+                        <i class="fas fa-trash"></i>
+                        حذف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- حاوية الإشعارات -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- تثبيت التطبيق -->
+    <div class="install-prompt" id="installPrompt">
+        <div class="install-icon">
+            <i class="fas fa-download"></i>
+        </div>
+        <div class="install-text">
+            <div class="install-title">تثبيت التطبيق</div>
+            <div class="install-sub">ثبت التطبيق للوصول السريع</div>
+        </div>
+        <div class="install-actions">
+            <button class="install-btn secondary" onclick="dismissInstall()">لاحقاً</button>
+            <button class="install-btn primary" onclick="installApp()">تثبيت</button>
+        </div>
+    </div>
+
+    <!-- المكتبات -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- كود التطبيق الكامل -->
+    <script>
+        // =============================================
+        // نظام إدارة المواد - كود كامل
+        // =============================================
+
+        // ---------- 1. إعداد قاعدة البيانات ----------
+        const db = new Dexie('ReorderPointSystemDB');
+        
+        db.version(1).stores({
+            materials: '++id, code, name, currentStock, reorderPoint, monthlyConsumption, leadTime'
+        });
+
+        db.open().catch(error => {
+            console.error('خطأ في فتح قاعدة البيانات:', error);
+            showToast('فشل في فتح قاعدة البيانات', 'error');
+        });
+
+        // ---------- 2. المتغيرات العامة ----------
+        let currentEditId = null;
+        let currentView = 'list';
+        let selectedItems = new Set();
+        let deferredPrompt = null;
+
+        // ---------- 3. دوال مساعدة ----------
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'error') icon = 'times-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div>${message}</div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatNumber(num) {
+            if (num === undefined || num === null) return '0';
+            if (Number.isInteger(num)) return num.toString();
+            return num.toFixed(2);
+        }
+
+        // ---------- 4. دوال قاعدة البيانات ----------
+        async function loadMaterials() {
+            try {
+                const materials = await db.materials.toArray();
+                renderMaterials(materials);
+                updateStats(materials);
+            } catch (error) {
+                console.error('خطأ في تحميل المواد:', error);
+                showToast('فشل في تحميل البيانات', 'error');
+            }
+        }
+
+        async function addMaterial(material) {
+            try {
+                const existing = await db.materials.where('code').equals(material.code).first();
+                if (existing) {
+                    showToast('كود الصنف موجود مسبقاً', 'error');
+                    return false;
+                }
+                
+                await db.materials.add(material);
+                showToast('تمت الإضافة بنجاح', 'success');
+                await loadMaterials();
+                return true;
+            } catch (error) {
+                console.error('خطأ في إضافة المادة:', error);
+                showToast('فشلت عملية الإضافة', 'error');
+                return false;
+            }
+        }
+
+        async function updateMaterial(id, updatedData) {
+            try {
+                if (updatedData.code) {
+                    const existing = await db.materials.where('code').equals(updatedData.code).and(item => item.id !== id).first();
+                    if (existing) {
+                        showToast('كود الصنف موجود مسبقاً', 'error');
+                        return false;
+                    }
+                }
+                
+                await db.materials.update(id, updatedData);
+                showToast('تم التحديث بنجاح', 'success');
+                await loadMaterials();
+                return true;
+            } catch (error) {
+                console.error('خطأ في تحديث المادة:', error);
+                showToast('فشلت عملية التحديث', 'error');
+                return false;
+            }
+        }
+
+        async function deleteMaterial(id) {
+            try {
+                await db.materials.delete(id);
+                showToast('تم الحذف بنجاح', 'success');
+                await loadMaterials();
+                return true;
+            } catch (error) {
+                console.error('خطأ في حذف المادة:', error);
+                showToast('فشلت عملية الحذف', 'error');
+                return false;
+            }
+        }
+
+        async function deleteMultipleMaterials(ids) {
+            try {
+                await db.materials.bulkDelete(Array.from(ids));
+                selectedItems.clear();
+                updateBulkBar();
+                showToast(`تم حذف ${ids.size} عنصر بنجاح`, 'success');
+                await loadMaterials();
+                return true;
+            } catch (error) {
+                console.error('خطأ في الحذف الجماعي:', error);
+                showToast('فشلت عملية الحذف الجماعي', 'error');
+                return false;
+            }
+        }
+
+        // ---------- 5. دوال العرض والإحصائيات ----------
+        function updateStats(materials) {
+            const totalItems = materials.length;
+            const totalStock = materials.reduce((sum, item) => sum + (item.currentStock || 0), 0);
+            const avgConsumption = materials.length > 0 
+                ? (materials.reduce((sum, item) => sum + (item.monthlyConsumption || 0), 0) / materials.length).toFixed(1)
+                : 0;
+            
+            const alertItems = materials.filter(item => (item.currentStock || 0) <= (item.reorderPoint || 0));
+            const alertCount = alertItems.length;
+            
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('totalStock').textContent = totalStock;
+            document.getElementById('avgConsumption').textContent = avgConsumption;
+            document.getElementById('alertCount').textContent = alertCount;
+            
+            const alertBadge = document.getElementById('alertBadge');
+            if (alertCount > 0) {
+                alertBadge.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: var(--accent-danger)"></i> ${alertCount} صنف بحاجة للطلب`;
+            } else {
+                alertBadge.innerHTML = `<i class="fas fa-check-circle" style="color: var(--accent-success)"></i> لا توجد تنبيهات`;
+            }
+        }
+
+        function calculateRecommendedOrder(material) {
+            if (material.currentStock >= material.reorderPoint) return 0;
+            
+            const leadTimeInMonths = material.leadTime / 30;
+            const consumptionDuringLead = material.monthlyConsumption * leadTimeInMonths;
+            const recommended = Math.ceil(consumptionDuringLead - material.currentStock + material.reorderPoint);
+            
+            return Math.max(recommended, 0);
+        }
+
+        function calculateStockPercentage(material) {
+            if (material.reorderPoint === 0) return 100;
+            const ratio = (material.currentStock / material.reorderPoint) * 100;
+            return Math.min(ratio, 200);
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'danger': return 'var(--accent-danger)';
+                case 'warning': return 'var(--accent-warning)';
+                default: return 'var(--accent-success)';
+            }
+        }
+
+        function getStatusBadge(isLowStock, material) {
+            if (isLowStock) {
+                return '<span class="status-pill pill-danger">بحاجة للطلب</span>';
+            } else if (material.currentStock <= material.reorderPoint * 1.2) {
+                return '<span class="status-pill" style="background: rgba(245,158,11,0.1); color: var(--accent-warning); border-color: rgba(245,158,11,0.2);"><span style="background: var(--accent-warning); box-shadow: 0 0 8px var(--accent-warning); width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px;"></span>يقترب من الحد</span>';
+            } else {
+                return '<span class="status-pill pill-safe">آمن</span>';
+            }
+        }
+
+        function renderMaterials(materials) {
+            const tbody = document.getElementById('materialsTableBody');
+            const gridView = document.getElementById('gridView');
+            const emptyState = document.getElementById('emptyState');
+            const listView = document.getElementById('listView');
+            const tableCount = document.getElementById('tableCount');
+            
+            if (!materials || materials.length === 0) {
+                listView.style.display = 'none';
+                gridView.style.display = 'none';
+                emptyState.style.display = 'block';
+                tableCount.textContent = '0 صنف';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            tableCount.textContent = `${materials.length} صنف`;
+            
+            if (currentView === 'list') {
+                listView.style.display = 'block';
+                gridView.style.display = 'none';
+                renderListView(materials);
+            } else {
+                listView.style.display = 'none';
+                gridView.style.display = 'block';
+                renderGridView(materials);
+            }
+        }
+
+        function renderListView(materials) {
+            const tbody = document.getElementById('materialsTableBody');
+            
+            let html = '';
+            materials.forEach((material, index) => {
+                const isLowStock = material.currentStock <= material.reorderPoint;
+                const recommendedQty = calculateRecommendedOrder(material);
+                
+                let stockStatus = 'safe';
+                if (isLowStock) stockStatus = 'danger';
+                else if (material.currentStock <= material.reorderPoint * 1.5) stockStatus = 'warning';
+                
+                const rowClass = isLowStock ? 'row-danger' : '';
+                const isSelected = selectedItems.has(material.id);
+                const selectedClass = isSelected ? 'selected' : '';
+                
+                html += `
+                    <tr class="${rowClass} ${selectedClass}" style="animation-delay: ${index * 0.03}s">
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" class="checkbox-input" onchange="toggleItemSelection(${material.id}, this.checked)" ${isSelected ? 'checked' : ''}>
+                                <span class="item-code">${escapeHtml(material.code)}</span>
+                            </div>
+                        </td>
+                        <td><span class="item-name">${escapeHtml(material.name)}</span></td>
+                        <td style="text-align:center">
+                            <span class="stock-value ${stockStatus}">${formatNumber(material.currentStock)}</span>
+                            <div class="stock-bar">
+                                <div class="stock-bar-fill ${stockStatus}" style="width: ${calculateStockPercentage(material)}%; background: ${getStatusColor(stockStatus)}"></div>
+                            </div>
+                        </td>
+                        <td style="text-align:center">${formatNumber(material.reorderPoint)}</td>
+                        <td style="text-align:center"><span class="consumption-badge">${formatNumber(material.monthlyConsumption)}</span></td>
+                        <td style="text-align:center"><span class="lead-badge">${material.leadTime} يوم</span></td>
+                        <td style="text-align:center">
+                            ${getStatusBadge(isLowStock, material)}
+                        </td>
+                        <td style="text-align:center">
+                            ${recommendedQty > 0 ? 
+                                `<span class="recommended-qty urgent">${formatNumber(recommendedQty)}</span>` : 
+                                '<span class="recommended-qty none">-</span>'}
+                        </td>
+                        <td>
+                            <div class="row-actions">
+                                <button class="action-btn" onclick="editMaterial(${material.id})" title="تعديل">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button class="action-btn del" onclick="confirmDelete(${material.id})" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        function renderGridView(materials) {
+            const gridView = document.getElementById('gridView');
+            
+            let html = '';
+            materials.forEach((material, index) => {
+                const isLowStock = material.currentStock <= material.reorderPoint;
+                const recommendedQty = calculateRecommendedOrder(material);
+                
+                const itemClass = isLowStock ? 'grid-item danger-item' : 'grid-item';
+                const isSelected = selectedItems.has(material.id);
+                const selectedClass = isSelected ? 'selected' : '';
+                
+                html += `
+                    <div class="${itemClass} ${selectedClass}" style="animation-delay: ${index * 0.03}s">
+                        <div class="grid-top">
+                            <div>
+                                <div class="grid-name">${escapeHtml(material.name)}</div>
+                                <span class="grid-code">${escapeHtml(material.code)}</span>
+                            </div>
+                            <input type="checkbox" class="checkbox-input" onchange="toggleItemSelection(${material.id}, this.checked)" ${isSelected ? 'checked' : ''}>
+                        </div>
+                        
+                        <div class="grid-stats">
+                            <div class="grid-stat-box">
+                                <div class="grid-stat-label">الرصيد</div>
+                                <div class="grid-stat-val ${isLowStock ? 'danger' : ''}">${formatNumber(material.currentStock)}</div>
+                            </div>
+                            <div class="grid-stat-box">
+                                <div class="grid-stat-label">حد الطلب</div>
+                                <div class="grid-stat-val">${formatNumber(material.reorderPoint)}</div>
+                            </div>
+                            <div class="grid-stat-box">
+                                <div class="grid-stat-label">الاستهلاك</div>
+                                <div class="grid-stat-val" style="color: var(--accent-secondary)">${formatNumber(material.monthlyConsumption)}</div>
+                            </div>
+                        </div>
+                        
+                        ${isLowStock ? `
+                            <div class="recommend-box">
+                                <span>الكمية المقترحة للطلب</span>
+                                <span class="qty">${formatNumber(recommendedQty)}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="grid-actions">
+                            <button class="grid-action-btn" onclick="editMaterial(${material.id})">
+                                <i class="fas fa-pen"></i> تعديل
+                            </button>
+                            <button class="grid-action-btn del" onclick="confirmDelete(${material.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            gridView.innerHTML = html;
+        }
+
+        // ---------- 6. دوال الواجهة ----------
+        function showAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'إضافة صنف جديد';
+            document.getElementById('materialForm').reset();
+            document.getElementById('itemCode').disabled = false;
+            closeModal('alertModal');
+            openModal('materialModal');
+        }
+
+        async function editMaterial(id) {
+            try {
+                const material = await db.materials.get(id);
+                if (!material) {
+                    showToast('البيانات غير موجودة', 'error');
+                    return;
+                }
+                
+                currentEditId = id;
+                document.getElementById('modalTitle').textContent = 'تعديل الصنف';
+                document.getElementById('itemCode').value = material.code;
+                document.getElementById('itemName').value = material.name;
+                document.getElementById('currentStock').value = material.currentStock;
+                document.getElementById('reorderPoint').value = material.reorderPoint;
+                document.getElementById('monthlyConsumption').value = material.monthlyConsumption;
+                document.getElementById('leadTime').value = material.leadTime;
+                
+                openModal('materialModal');
+            } catch (error) {
+                console.error('خطأ في جلب بيانات التعديل:', error);
+                showToast('فشل في تحميل بيانات الصنف', 'error');
+            }
+        }
+
+        async function saveMaterial(event) {
+            event.preventDefault();
+            
+            const materialData = {
+                code: document.getElementById('itemCode').value.trim(),
+                name: document.getElementById('itemName').value.trim(),
+                currentStock: parseFloat(document.getElementById('currentStock').value) || 0,
+                reorderPoint: parseFloat(document.getElementById('reorderPoint').value) || 0,
+                monthlyConsumption: parseFloat(document.getElementById('monthlyConsumption').value) || 0,
+                leadTime: parseInt(document.getElementById('leadTime').value) || 0
+            };
+            
+            if (!materialData.code || !materialData.name) {
+                showToast('الرجاء إدخال الكود والاسم', 'warning');
+                return;
+            }
+            
+            let success;
+            if (currentEditId) {
+                success = await updateMaterial(currentEditId, materialData);
+            } else {
+                success = await addMaterial(materialData);
+            }
+            
+            if (success) {
+                closeModal('materialModal');
+            }
+        }
+
+        function confirmDelete(id) {
+            document.getElementById('confirmMsg').textContent = 'هل أنت متأكد من حذف هذا الصنف؟';
+            document.getElementById('confirmBtn').onclick = async () => {
+                await deleteMaterial(id);
+                closeModal('confirmModal');
+            };
+            openModal('confirmModal');
+        }
+
+        function confirmBulkDelete() {
+            if (selectedItems.size === 0) {
+                showToast('لم يتم تحديد أي عناصر', 'warning');
+                return;
+            }
+            
+            document.getElementById('confirmMsg').textContent = `هل أنت متأكد من حذف (${selectedItems.size}) عنصر؟`;
+            document.getElementById('confirmBtn').onclick = async () => {
+                await deleteMultipleMaterials(selectedItems);
+                closeModal('confirmModal');
+            };
+            openModal('confirmModal');
+        }
+
+        function showImportModal() {
+            closeModal('alertModal');
+            openModal('importModal');
+        }
+
+        async function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                showToast('جاري قراءة الملف...', 'info');
+                
+                const data = await readExcelFile(file);
+                const imported = await importMaterialsFromData(data);
+                
+                if (imported > 0) {
+                    showToast(`تم استيراد ${imported} صنف بنجاح`, 'success');
+                    closeModal('importModal');
+                    await loadMaterials();
+                } else {
+                    showToast('لم يتم استيراد أي بيانات', 'warning');
+                }
+            } catch (error) {
+                console.error('خطأ في الاستيراد:', error);
+                showToast('فشل في قراءة الملف', 'error');
+            }
+            
+            event.target.value = '';
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        
+                        const rows = jsonData.slice(1);
+                        resolve(rows);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function importMaterialsFromData(rows) {
+            let count = 0;
+            
+            for (const row of rows) {
+                if (!row || row.length < 6) continue;
+                
+                const material = {
+                    code: String(row[0] || '').trim(),
+                    name: String(row[1] || '').trim(),
+                    currentStock: parseFloat(row[2]) || 0,
+                    reorderPoint: parseFloat(row[3]) || 0,
+                    monthlyConsumption: parseFloat(row[4]) || 0,
+                    leadTime: parseInt(row[5]) || 0
+                };
+                
+                if (material.code && material.name) {
+                    try {
+                        const existing = await db.materials.where('code').equals(material.code).first();
+                        if (!existing) {
+                            await db.materials.add(material);
+                            count++;
+                        }
+                    } catch (error) {
+                        console.warn('خطأ في استيراد صف:', row, error);
+                    }
+                }
+            }
+            
+            return count;
+        }
+
+        async function exportData() {
+            try {
+                const materials = await db.materials.toArray();
+                
+                if (materials.length === 0) {
+                    showToast('لا توجد بيانات للتصدير', 'warning');
+                    return;
+                }
+                
+                const exportData = materials.map(m => ({
+                    'كود الصنف': m.code,
+                    'اسم الصنف': m.name,
+                    'الرصيد الحالي': m.currentStock,
+                    'حد الطلب': m.reorderPoint,
+                    'الاستهلاك الشهري': m.monthlyConsumption,
+                    'مدة التوريد (أيام)': m.leadTime,
+                    'الكمية المقترحة': calculateRecommendedOrder(m)
+                }));
+                
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'المواد');
+                
+                XLSX.writeFile(wb, `مواد_حد_الطلب_${new Date().toLocaleDateString('ar-EG')}.xlsx`);
+                
+                showToast('تم التصدير بنجاح', 'success');
+            } catch (error) {
+                console.error('خطأ في التصدير:', error);
+                showToast('فشلت عملية التصدير', 'error');
+            }
+        }
+
+        async function exportAlerts() {
+            try {
+                const materials = await db.materials.toArray();
+                const alertItems = materials.filter(item => item.currentStock <= item.reorderPoint);
+                
+                if (alertItems.length === 0) {
+                    showToast('لا توجد تنبيهات للتصدير', 'warning');
+                    return;
+                }
+                
+                const exportData = alertItems.map(m => ({
+                    'كود الصنف': m.code,
+                    'اسم الصنف': m.name,
+                    'الرصيد الحالي': m.currentStock,
+                    'حد الطلب': m.reorderPoint,
+                    'الكمية المقترحة': calculateRecommendedOrder(m)
+                }));
+                
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'تنبيهات');
+                XLSX.writeFile(wb, `تنبيهات_حد_الطلب_${new Date().toLocaleDateString('ar-EG')}.xlsx`);
+                
+                showToast('تم تصدير التنبيهات', 'success');
+            } catch (error) {
+                console.error('خطأ في تصدير التنبيهات:', error);
+                showToast('فشلت عملية التصدير', 'error');
+            }
+        }
+
+        // ---------- 7. دوال البحث ----------
+        let searchTimeout = null;
+        
+        function searchMaterials() {
+            clearTimeout(searchTimeout);
+            
+            searchTimeout = setTimeout(async () => {
+                const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+                
+                if (!searchTerm) {
+                    await loadMaterials();
+                    return;
+                }
+                
+                try {
+                    const materials = await db.materials
+                        .filter(m => 
+                            m.code.toLowerCase().includes(searchTerm) || 
+                            m.name.toLowerCase().includes(searchTerm)
+                        )
+                        .toArray();
+                    
+                    renderMaterials(materials);
+                } catch (error) {
+                    console.error('خطأ في البحث:', error);
+                }
+            }, 300);
+        }
+
+        // ---------- 8. دوال العرض ----------
+        function setView(view) {
+            currentView = view;
+            
+            const listBtn = document.getElementById('listViewBtn');
+            const gridBtn = document.getElementById('gridViewBtn');
+            
+            if (view === 'list') {
+                listBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+            } else {
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            }
+            
+            loadMaterials();
+        }
+
+        // ---------- 9. دوال التحديد الجماعي ----------
+        function toggleItemSelection(id, checked) {
+            if (checked) {
+                selectedItems.add(id);
+            } else {
+                selectedItems.delete(id);
+            }
+            
+            updateBulkBar();
+            highlightSelectedRows();
+        }
+
+        function selectAll() {
+            db.materials.each(material => {
+                selectedItems.add(material.id);
+            }).then(() => {
+                updateBulkBar();
+                highlightSelectedRows();
+                
+                document.querySelectorAll('.checkbox-input').forEach(cb => cb.checked = true);
+            });
+        }
+
+        function deselectAll() {
+            selectedItems.clear();
+            updateBulkBar();
+            
+            document.querySelectorAll('.checkbox-input').forEach(cb => cb.checked = false);
+            
+            document.querySelectorAll('#materialsTableBody tr').forEach(tr => tr.classList.remove('selected'));
+            document.querySelectorAll('.grid-item').forEach(item => item.classList.remove('selected'));
+        }
+
+        function updateBulkBar() {
+            const bulkBar = document.getElementById('bulkBar');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedItems.size > 0) {
+                selectedCount.textContent = selectedItems.size;
+                bulkBar.classList.add('active');
+            } else {
+                bulkBar.classList.remove('active');
+            }
+        }
+
+        function highlightSelectedRows() {
+            document.querySelectorAll('#materialsTableBody tr').forEach(tr => tr.classList.remove('selected'));
+            document.querySelectorAll('.grid-item').forEach(item => item.classList.remove('selected'));
+            
+            selectedItems.forEach(id => {
+                const rows = document.querySelectorAll('#materialsTableBody tr');
+                rows.forEach(row => {
+                    if (row.innerHTML.includes(`onchange="toggleItemSelection(${id},`)) {
+                        row.classList.add('selected');
+                    }
+                });
+                
+                const items = document.querySelectorAll('.grid-item');
+                items.forEach(item => {
+                    if (item.innerHTML.includes(`onchange="toggleItemSelection(${id},`)) {
+                        item.classList.add('selected');
+                    }
+                });
+            });
+        }
+
+        // ---------- 10. دوال النوافذ ----------
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function handleOverlayClick(event, modalId) {
+            if (event.target.classList.contains('modal-overlay')) {
+                closeModal(modalId);
+            }
+        }
+
+        async function showAlertView() {
+            try {
+                const materials = await db.materials.toArray();
+                const alertItems = materials.filter(item => (item.currentStock || 0) <= (item.reorderPoint || 0));
+                
+                if (alertItems.length === 0) {
+                    showToast('لا توجد تنبيهات حالياً', 'success');
+                    return;
+                }
+                
+                let content = '';
+                alertItems.forEach((item, index) => {
+                    const recommended = calculateRecommendedOrder(item);
+                    
+                    content += `
+                        <div class="alert-item" style="animation-delay: ${index * 0.05}s">
+                            <div class="alert-top">
+                                <div>
+                                    <div class="alert-name">${escapeHtml(item.name)}</div>
+                                    <div class="alert-code">${escapeHtml(item.code)}</div>
+                                </div>
+                                <span class="urgent-badge">${recommended > 0 ? `يجب طلب ${recommended}` : ''}</span>
+                            </div>
+                            <div class="alert-stats">
+                                <div class="alert-stat-box">
+                                    <div class="alert-stat-label">الرصيد الحالي</div>
+                                    <div class="alert-stat-val red">${formatNumber(item.currentStock)}</div>
+                                </div>
+                                <div class="alert-stat-box">
+                                    <div class="alert-stat-label">حد الطلب</div>
+                                    <div class="alert-stat-val">${formatNumber(item.reorderPoint)}</div>
+                                </div>
+                                <div class="alert-stat-box">
+                                    <div class="alert-stat-label">الاستهلاك الشهري</div>
+                                    <div class="alert-stat-val orange">${formatNumber(item.monthlyConsumption)}</div>
+                                </div>
+                                <div class="alert-stat-box">
+                                    <div class="alert-stat-label">الكمية المقترحة</div>
+                                    <div class="alert-stat-val purple">${formatNumber(recommended)}</div>
+                                </div>
+                            </div>
+                            <div class="alert-lead">
+                                <i class="fas fa-clock" style="margin-left: 6px;"></i>
+                                مدة التوريد: ${item.leadTime} يوم
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('alertContent').innerHTML = content;
+                openModal('alertModal');
+            } catch (error) {
+                console.error('خطأ في عرض التنبيهات:', error);
+            }
+        }
+
+        // ---------- 11. دوال السحب والإفلات ----------
+        function handleDragOver(event) {
+            event.preventDefault();
+            document.getElementById('dropZone').classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            document.getElementById('dropZone').classList.remove('dragover');
+        }
+
+        async function handleDrop(event) {
+            event.preventDefault();
+            document.getElementById('dropZone').classList.remove('dragover');
+            
+            const file = event.dataTransfer.files[0];
+            if (!file) return;
+            
+            if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+                showToast('الملف غير مدعوم. الرجاء رفع ملف Excel', 'error');
+                return;
+            }
+            
+            try {
+                showToast('جاري معالجة الملف...', 'info');
+                const data = await readExcelFile(file);
+                const imported = await importMaterialsFromData(data);
+                
+                if (imported > 0) {
+                    showToast(`تم استيراد ${imported} صنف بنجاح`, 'success');
+                    closeModal('importModal');
+                    await loadMaterials();
+                } else {
+                    showToast('لم يتم استيراد أي بيانات', 'warning');
+                }
+            } catch (error) {
+                console.error('خطأ في معالجة الملف:', error);
+                showToast('فشل في قراءة الملف', 'error');
+            }
+        }
+
+        // ---------- 12. دوال الشبكة ----------
+        function updateNetworkStatus() {
+            const netDot = document.getElementById('netDot');
+            const netText = document.getElementById('netText');
+            
+            if (navigator.onLine) {
+                netDot.classList.remove('offline');
+                netText.textContent = 'متصل';
+            } else {
+                netDot.classList.add('offline');
+                netText.textContent = 'غير متصل (تعمل محلياً)';
+            }
+        }
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        updateNetworkStatus();
+
+        // ---------- 13. دوال التحديث ----------
+        function refreshData() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('fa-spin');
+            loadMaterials().finally(() => {
+                setTimeout(() => icon.classList.remove('fa-spin'), 500);
+            });
+        }
+
+        // ---------- 14. تثبيت التطبيق ----------
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            setTimeout(() => {
+                const installPrompt = document.getElementById('installPrompt');
+                if (!localStorage.getItem('installDismissed')) {
+                    installPrompt.classList.add('show');
+                }
+            }, 30000);
+        });
+
+        function installApp() {
+            if (!deferredPrompt) {
+                showToast('التطبيق مثبت مسبقاً أو غير متوفر', 'info');
+                return;
+            }
+            
+            deferredPrompt.prompt();
+            
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    showToast('شكراً لتثبيت التطبيق', 'success');
+                }
+                deferredPrompt = null;
+                document.getElementById('installPrompt').classList.remove('show');
+            });
+        }
+
+        function dismissInstall() {
+            document.getElementById('installPrompt').classList.remove('show');
+            localStorage.setItem('installDismissed', 'true');
+        }
+
+        // ---------- 15. بدء التطبيق ----------
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadMaterials();
+            
+            const count = await db.materials.count();
+            if (count === 0) {
+                // إضافة بيانات تجريبية
+                const sampleData = [
+                    { code: 'CEM001', name: 'أسمنت بورتلاندي', currentStock: 150, reorderPoint: 200, monthlyConsumption: 300, leadTime: 7 },
+                    { code: 'STL002', name: 'حديد تسليح 12مم', currentStock: 80, reorderPoint: 100, monthlyConsumption: 150, leadTime: 5 },
+                    { code: 'WOD003', name: 'خشب موسكي', currentStock: 45, reorderPoint: 50, monthlyConsumption: 60, leadTime: 10 },
+                    { code: 'PNT004', name: 'دهان أبيض', currentStock: 30, reorderPoint: 25, monthlyConsumption: 20, leadTime: 3 }
+                ];
+                
+                for (const item of sampleData) {
+                    await db.materials.add(item);
+                }
+                
+                await loadMaterials();
+                showToast('تم إضافة بيانات تجريبية', 'info');
+            }
+            
+            if (window.innerWidth <= 768) {
+                setView('grid');
+            }
+        });
+    </script>
+</body>
+</html>
